@@ -373,3 +373,4 @@ model/
 # datasets
 datasets/*
 !datasets/*.sh
+apps/Android/MnnLlmChat/app/.cxx
