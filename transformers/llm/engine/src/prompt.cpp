@@ -122,18 +122,29 @@ std::string Prompt::applyTemplate(std::string user_content, bool add_system_prom
 }
 
 std::string Prompt::applyTemplate(std::vector<ChatMessage> inputs, bool add_generation_prompt) {
+    /**
+        mBos = "<|begin_of_sentence|>";
+        mSystemTemplate = "%s";
+        mUserTemplate = "<|User|>%s";
+        mAssistantTemplate = "<|Assistant|>%s<|end_of_sentence|>";
+    */
     std::string prompt_str = mBos;
     for (auto input : inputs) {
+            MNN_PRINT("lianny input : k:%s v:%s\n", input.first.c_str(), input.second.c_str());
         if (input.first == "") continue;
         if (input.first == "system") {
             if (input.second == "") continue;
             prompt_str += buildPrompt(input, mSystemTemplate, "%s");
+
+            MNN_PRINT("lianny system prompt: %s\n", prompt_str.c_str());
             continue;
         } else if (input.first == "user") {
             prompt_str += buildPrompt(input, mUserTemplate, "%s");
+            MNN_PRINT("lianny user prompt: %s\n", buildPrompt(input, mUserTemplate, "%s").c_str());
             continue;
         } else if (input.first == "assistant") {
-            prompt_str += mAssistantPrefix + input.second + mAssistantSuffix;
+            prompt_str += mAssistantPrefix + input.second ;
+            MNN_PRINT("lianny assistant prompt: %s\n", buildPrompt(input, mAssistantTemplate, "%s").c_str());
             continue;
         } else {
             // don't support

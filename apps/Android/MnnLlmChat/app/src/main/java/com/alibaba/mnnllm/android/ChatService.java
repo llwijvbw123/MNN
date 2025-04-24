@@ -26,11 +26,12 @@ public class ChatService{
                                                   String modelDir,
                                                   boolean useTmpPath,
                                                   String sessionId,
-                                                  List<ChatDataItem> chatDataItemList) {
+                                                  List<ChatDataItem> chatDataItemList,
+                                                  String prompt) {
         if (TextUtils.isEmpty(sessionId)) {
             sessionId = String.valueOf(System.currentTimeMillis());
         }
-        ChatSession session = new ChatSession(modelId, sessionId, modelDir, useTmpPath, chatDataItemList);
+        ChatSession session = new ChatSession(modelId, sessionId, modelDir, useTmpPath, chatDataItemList,prompt);
         transformerSessionMap.put(sessionId, session);
         return session;
     }
@@ -39,11 +40,12 @@ public class ChatService{
                                                   String modelId,
                                                   String modelDir,
                                                   String sessionId,
-                                                  List<ChatDataItem> chatDataItemList) {
+                                                  List<ChatDataItem> chatDataItemList,
+                                                  String prompt) {
         if (TextUtils.isEmpty(sessionId)) {
             sessionId = String.valueOf(System.currentTimeMillis());
         }
-        ChatSession session = new ChatSession(modelId, sessionId, modelDir, false, chatDataItemList, true);
+        ChatSession session = new ChatSession(modelId, sessionId, modelDir, false, chatDataItemList, true,prompt);
         diffusionSessionMap.put(sessionId, session);
         return session;
     }

@@ -642,6 +642,8 @@ void Llm::response(const std::vector<int>& input_ids, std::ostream* os, const ch
 }
 
 void Llm::response(const std::string& user_content, std::ostream* os, const char* end_with, int max_new_tokens) {
+
+    MNN_PRINT("lianny: %s\n", user_content.c_str());
     auto prompt = user_content;
     if (mConfig->use_template()) {
         prompt = mPrompt->applyTemplate(user_content);
@@ -651,10 +653,13 @@ void Llm::response(const std::string& user_content, std::ostream* os, const char
 }
 
 void Llm::response(const ChatMessages& chat_prompts, std::ostream* os, const char* end_with, int max_new_tokens) {
+    MNN_PRINT("lianny: %s\n", "chat_prompts");
     if (chat_prompts.empty()) {
+        MNN_ERROR("prompts is empty\n");
         return;
     }
     auto prompt = mPrompt->applyTemplate(chat_prompts);
+    MNN_PRINT("prompt: %s\n", prompt.c_str());
     std::vector<int> input_ids = tokenizer_encode(prompt);
     response(input_ids, os, end_with, max_new_tokens);
 }

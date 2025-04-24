@@ -7,7 +7,9 @@ import static com.alibaba.mnnllm.android.chat.VoiceRecordingModule.REQUEST_RECOR
 import static com.alibaba.mnnllm.android.utils.KeyboardUtils.hideKeyboard;
 import static com.alibaba.mnnllm.android.utils.KeyboardUtils.showKeyboard;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.Uri;
@@ -36,11 +38,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.alibaba.mnnllm.android.ChatService;
 import com.alibaba.mnnllm.android.ChatSession;
 import com.alibaba.mnnllm.android.R;
-import com.alibaba.mnnllm.android.utils.FileUtils;
-import com.alibaba.mnnllm.android.utils.ModelPreferences;
-import com.alibaba.mnnllm.android.utils.ModelUtils;
-import com.alibaba.mnnllm.android.utils.AudioPlayService;
-import com.alibaba.mnnllm.android.utils.PreferenceUtils;
+import com.alibaba.mnnllm.android.utils.*;
+import com.alibaba.mnnllm.android.widgets.PopupWindowHelper;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -145,12 +144,15 @@ public class ChatActivity extends AppCompatActivity {
         } else {
             chatDataItemList = null;
         }
+
+        SharedPreferences sharedPreferences = this.getSharedPreferences("Prompt", Context.MODE_PRIVATE);
+        String prompt = sharedPreferences.getString("Prompt","");
         if (ModelUtils.isDiffusionModel(modelName)) {
             String diffusionDir = getIntent().getStringExtra("diffusionDir");
-            chatSession =  chatService.createDiffusionSession(modelId, diffusionDir, chatSessionId, chatDataItemList);
+            chatSession =  chatService.createDiffusionSession(modelId, diffusionDir, chatSessionId, chatDataItemList,prompt);
         } else {
             String configFilePath = getIntent().getStringExtra("configFilePath");
-            chatSession = chatService.createSession(modelId, configFilePath, true, chatSessionId, chatDataItemList);
+            chatSession = chatService.createSession(modelId, configFilePath, true, chatSessionId, chatDataItemList,prompt);
         }
         chatSessionId = chatSession.getSessionId();
         chatSession.setKeepHistory(!ModelUtils.isVisualModel(modelName) && !ModelUtils.isAudioModel(modelName));
@@ -370,7 +372,8 @@ public class ChatActivity extends AppCompatActivity {
         menu.findItem(R.id.show_performance_metrics)
                 .setChecked(PreferenceUtils.getBoolean(this, PreferenceUtils.KEY_SHOW_PERFORMACE_METRICS, true));
         menu.findItem(R.id.menu_item_use_mmap).setChecked(ModelPreferences.getBoolean(this, modelId, ModelPreferences.KEY_USE_MMAP, true));
-        menu.findItem(R.id.menu_item_backend).setChecked(ModelPreferences.getBoolean(this, modelId, ModelPreferences.KEY_BACKEND, false));        
+        menu.findItem(R.id.menu_item_backend).setChecked(ModelPreferences.getBoolean(this, modelId, ModelPreferences.KEY_BACKEND, false));
+        menu.findItem(R.id.menu_item_prompt);
         MenuItem samplerSpinnerItem = menu.findItem(R.id.menu_item_sampler_spinner);
         Spinner samplerSpinner = Objects.requireNonNull(samplerSpinnerItem.getActionView()).findViewById(R.id.sampler_spinner);
         String[] items = new String[]{"greedy", "temperature", "topK", "topP", "minP", "typical", "tfs", "penalty", "mixed"};
@@ -421,6 +424,14 @@ public class ChatActivity extends AppCompatActivity {
             Toast.makeText(this, R.string.reloading_session, Toast.LENGTH_LONG).show();
             ModelPreferences.setBoolean(this, modelId, ModelPreferences.KEY_BACKEND, item.isChecked());
             recreate();
+        } else if (item.getItemId() == R.id.menu_item_prompt) {
+            new PopupWindowHelper().showPromptPopupWindow(this,findViewById(R.id.toolbar), 0, 50, new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if(v.getId() == R.id.chat_prompt_sure){
+                    }
+                }
+            });
         }
         return super.onOptionsItemSelected(item);
     }

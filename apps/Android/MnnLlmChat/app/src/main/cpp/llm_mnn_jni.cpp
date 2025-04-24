@@ -97,7 +97,7 @@ private:
 //for_history true for insert to history, false for submit prompt
 const char* getUserString(const char* user_content, bool for_history) {
     if (is_r1) {
-        return ("<|User|>" + std::string(user_content) + "<|Assistant|>" + (for_history ? "" : "<think>\n")).c_str();
+        return user_content;
     } else {
         return user_content;
     }
@@ -108,7 +108,7 @@ const std::string getR1AssistantString(std::string assistant_content) {
     if (pos != std::string::npos) {
         assistant_content.erase(0, pos + std::string("</think>").length());
     }
-    return trimLeadingWhitespace(assistant_content) + "<|end_of_sentence|>";
+    return trimLeadingWhitespace(assistant_content) ;
 }
 
 extern "C" {
@@ -128,7 +128,7 @@ JNIEXPORT jlong JNICALL Java_com_alibaba_mnnllm_android_ChatSession_initNative(J
                                                                                     jstring modelDir,
                                                                                     jboolean use_tmp_path,
                                                                                     jobject chat_history,
-                                                                                    jstring configJsonStr) {
+                                                                                    jstring configJsonStr,jstring prompt) {
     const char* config_json_cstr = env->GetStringUTFChars(configJsonStr, nullptr);
     json configJson = json::parse(config_json_cstr);
     bool is_diffusion = configJson["is_diffusion"];
@@ -164,7 +164,8 @@ JNIEXPORT jlong JNICALL Java_com_alibaba_mnnllm_android_ChatSession_initNative(J
         extra_config["tmp_path"] = temp_dir;
     }
     if (is_r1) {
-        extra_config["use_template"] = false;
+        extra_config["use_template"] = true;
+//        extra_config["use_template"] = false;
         extra_config["precision"] = "high";
     }
     extra_config["sampler_type"] = sampler;
@@ -173,7 +174,8 @@ JNIEXPORT jlong JNICALL Java_com_alibaba_mnnllm_android_ChatSession_initNative(J
     llm->set_config(extra_config_str);
     MNN_DEBUG("dumped config: %s", llm->dump_config().c_str());
     history.clear();
-    history.emplace_back("system", is_r1 ? "<|begin_of_sentence|>You are a helpful assistant." : "You are a helpful assistant.");
+    history.emplace_back("system", env->GetStringUTFChars(prompt, nullptr));
+    MNN_DEBUG("system promat: %s", env->GetStringUTFChars(prompt, nullptr));
     if (chat_history != nullptr) {
         jclass listClass = env->GetObjectClass(chat_history);
         jmethodID sizeMethod = env->GetMethodID(listClass, "size", "()I");
