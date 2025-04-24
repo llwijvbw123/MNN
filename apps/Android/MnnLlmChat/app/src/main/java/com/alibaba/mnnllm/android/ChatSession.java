@@ -3,8 +3,12 @@
 
 package com.alibaba.mnnllm.android;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.util.Log;
 
+import android.widget.Button;
+import android.widget.TextView;
 import com.alibaba.mls.api.ApplicationProvider;
 import com.alibaba.mnnllm.android.chat.ChatDataItem;
 import com.alibaba.mnnllm.android.mainsettings.MainSettings;
@@ -12,10 +16,12 @@ import com.alibaba.mnnllm.android.utils.FileUtils;
 import com.alibaba.mnnllm.android.utils.ModelPreferences;
 import com.alibaba.mnnllm.android.utils.ModelUtils;
 
+import com.blankj.utilcode.util.FileIOUtils;
+import com.google.gson.Gson;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.File;
+import java.io.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -40,18 +46,20 @@ public class ChatSession {
     private boolean useTmpPath;
     private boolean keepHistory;
     private String modelId;
+    private String prompt;
 
-    public ChatSession(String modelId, String sessionId, String configPath, boolean useTmpPath, List<ChatDataItem> history) {
-        this(modelId, sessionId, configPath, useTmpPath, history, false);
+    public ChatSession(String modelId, String sessionId, String configPath, boolean useTmpPath, List<ChatDataItem> history,String prompt) {
+        this(modelId, sessionId, configPath, useTmpPath, history, false,prompt);
     }
 
-    public ChatSession(String modelId, String sessionId, String configPath, boolean useTmpPath, List<ChatDataItem> history, boolean isDiffusion) {
+    public ChatSession(String modelId, String sessionId, String configPath, boolean useTmpPath, List<ChatDataItem> history, boolean isDiffusion,String prompt) {
         this.modelId = modelId;
         this.sessionId = sessionId;
         this.configPath = configPath;
         this.savedHistory = history;
         this.isDiffusion = isDiffusion;
         this.useTmpPath = useTmpPath;
+        this.prompt = prompt;
     }
 
     public void load() {
@@ -74,13 +82,27 @@ public class ChatSession {
             configJson.put("backend", backend);
             configJson.put("sampler", sampler);
             configJson.put("is_diffusion", isDiffusion);
-            configJson.put("is_r1", ModelUtils.isR1Model(modelId));
+            if(ModelUtils.isR1Model(modelId)){
+                configJson.put("is_r1", ModelUtils.isR1Model(modelId));
+            }else{
+                File llmConfig = new File(configPath
+                        .substring(0, configPath.lastIndexOf("/"))+"/llm_config.json");
+                if(llmConfig.exists()){
+                   String content= FileIOUtils.readFile2String(llmConfig);
+                   HashMap<String,String> mapDic =  new Gson().fromJson(content, HashMap.class);
+                   if( mapDic.containsKey("prompt_template") && mapDic.get("prompt_template").contains("<|begin_of_sentence|><|User|>")){
+                       configJson.put("is_r1", true);
+                   }else{
+                       configJson.put("is_r1", false);
+                   }
+                }
+            }
             configJson.put("diffusion_memory_mode", MainSettings.INSTANCE.getDiffusionMemoryMode(ApplicationProvider.get()));
         } catch (JSONException e) {
             throw new RuntimeException(e);
         }
         nativePtr = initNative(rootCacheDir, modelId, configPath,
-                useTmpPath, historyStringList, configJson.toString());
+                useTmpPath, historyStringList, configJson.toString(),prompt);
         modelLoading = false;
         if (mReleaseRequeted) {
             release();
@@ -175,7 +197,8 @@ public class ChatSession {
                                   String configPath,
                                   boolean useTmpPath,
                                   List<String> history,
-                                  String configJsonStr);
+                                  String configJsonStr,
+                                  String prompt);
     private native HashMap<String, Object> submitNative(long instanceId, String input, boolean keepHistory, GenerateProgressListener listener);
 
     private native HashMap<String, Object> submitDiffusionNative(long instanceId, String input, String outputPath, int iterNum, int randomSeed, GenerateProgressListener progressListener);

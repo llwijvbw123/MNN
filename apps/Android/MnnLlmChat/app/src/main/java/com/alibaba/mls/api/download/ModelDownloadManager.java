@@ -106,6 +106,8 @@ public class ModelDownloadManager {
             return getHfDownloadModelPath(modelId);
         } else if (getMsModelPath(modelId).exists()) {
             return getMsModelPath(modelId);
+        }else if (context.getExternalFilesDir(modelId).exists()){
+            return context.getExternalFilesDir(modelId);
         }
         return null;
     }
