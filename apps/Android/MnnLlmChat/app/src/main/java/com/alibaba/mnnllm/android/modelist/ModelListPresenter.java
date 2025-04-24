@@ -7,6 +7,7 @@ import static com.alibaba.mls.api.HfApiClient.HOST_DEFAULT;
 import static com.alibaba.mls.api.HfApiClient.HOST_MIRROR;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.res.AssetManager;
 import android.os.Handler;
 import android.text.TextUtils;
@@ -20,6 +21,7 @@ import com.alibaba.mls.api.download.DownloadListener;
 import com.alibaba.mls.api.download.ModelDownloadManager;
 import com.alibaba.mnnllm.android.utils.ModelUtils;
 import com.alibaba.mnnllm.android.R;
+import com.blankj.utilcode.util.GsonUtils;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -157,9 +159,22 @@ public class ModelListPresenter implements ModelItemListener, DownloadListener {
 
     private void onListAvailable(List<HfRepoItem> hfRepoItems, Runnable onSuccess) {
         hfRepoItems = ModelUtils.processList(hfRepoItems);
+
+        SharedPreferences sharedPreferences = context.getSharedPreferences("LOCAL_IMPORT" , Context.MODE_PRIVATE);
+        String listStr = sharedPreferences.getString("local_import","[]");
+        List<String> list = GsonUtils.fromJson(listStr, new TypeToken<List<String>>(){}.getType());
+        for (String modelId:list) {
+            HfRepoItem itemT =new HfRepoItem();
+            itemT.setModelId(modelId);
+            hfRepoItems.add(0,itemT);
+        }
+
         for (HfRepoItem item : hfRepoItems) {
             modelDownloadManager.getDownloadInfo(item.getModelId());
         }
+
+
+
         modelListAdapter.updateItems(hfRepoItems, getModelItemState(hfRepoItems));
         if (onSuccess != null) {
             onSuccess.run();

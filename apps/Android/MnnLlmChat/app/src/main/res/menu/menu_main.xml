@@ -29,7 +29,11 @@
         app:showAsAction="never" />
 
     <item
-        android:id="@+id/action_settings"
-        android:title="@string/settings"
-        app:showAsAction="never" />
+            android:id="@+id/action_settings"
+            android:title="@string/settings"
+            app:showAsAction="never" />
+    <item
+            android:id="@+id/action_loadlocal"
+            android:title="@string/load_local"
+            app:showAsAction="never" />
 </menu>
