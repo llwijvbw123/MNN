@@ -327,7 +327,12 @@ public class ModelListFragment extends Fragment implements ModelListContract.Vie
                 editor.putString("local_import",GsonUtils.toJson(list));
                 editor.apply();
                 Toast.makeText(getContext(), "模型导入完成", Toast.LENGTH_SHORT).show();
-                modelListPresenter.load();
+                getActivity().runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        modelListPresenter.refreshWithCache();
+                    }
+                });
             } catch (IOException e) {
                 destinationDir.delete();
                 e.printStackTrace();

@@ -116,6 +116,9 @@ public class ModelItemHolder extends RecyclerView.ViewHolder implements View.OnC
             String modelId = hfRepoItem.getModelId();
             if (item.getItemId() == R.id.menu_delete_model) {
                 ModelDownloadManager.getInstance(v.getContext()).removeDownload(modelId);
+                if(modelItemListener != null) {
+                    modelItemListener.onItemRemove(hfRepoItem);
+                }
             } else if (item.getItemId() == R.id.menu_pause_download) {
                 ModelDownloadManager.getInstance(v.getContext()).pauseDownload(modelId);
             } else if (item.getItemId() == R.id.menu_start_download) {

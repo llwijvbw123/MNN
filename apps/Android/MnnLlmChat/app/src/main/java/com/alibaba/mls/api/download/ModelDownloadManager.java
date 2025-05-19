@@ -7,6 +7,7 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.util.Log;
@@ -38,6 +39,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import com.blankj.utilcode.util.GsonUtils;
+import com.blankj.utilcode.util.PathUtils;
+import com.google.gson.reflect.TypeToken;
 import okhttp3.OkHttpClient;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -106,8 +110,8 @@ public class ModelDownloadManager {
             return getHfDownloadModelPath(modelId);
         } else if (getMsModelPath(modelId).exists()) {
             return getMsModelPath(modelId);
-        }else if (context.getExternalFilesDir(modelId).exists()){
-            return context.getExternalFilesDir(modelId);
+        }else if (new File(PathUtils.getExternalAppFilesPath()+"/"+modelId).exists()){
+            return new File(PathUtils.getExternalAppFilesPath()+"/"+modelId);
         }
         return null;
     }
@@ -504,6 +508,7 @@ public class ModelDownloadManager {
                 Log.e(TAG, "remove storageFolder" + msStorageFolder.getAbsolutePath() + " faield");
             }
         }
+
         DownloadPersistentData.removeProgress(ApplicationProvider.get(), modelId);
         File hfLinkFolder = this.getHfDownloadModelPath(modelId);
         Log.d(TAG, "removeHfLinkFolder: " + hfLinkFolder.getAbsolutePath());
@@ -518,6 +523,25 @@ public class ModelDownloadManager {
             DownloadInfo downloadInfo = getDownloadInfo(modelId);
             downloadInfo.downlodaState = DownloadInfo.DownloadSate.NOT_START;
             downloadListener.onDownloadFileRemoved(modelId);
+        }
+
+
+        File localModule = context.getExternalFilesDir(modelId);
+        Log.d(TAG, "removeStorageFolder: " + localModule.getAbsolutePath());
+        if (localModule.exists()){
+            boolean result = DownloadFileUtils.deleteDirectoryRecursively(localModule);
+            SharedPreferences sharedPreferences = context.getSharedPreferences("LOCAL_IMPORT" , Context.MODE_PRIVATE);
+            String listStr = sharedPreferences.getString("local_import","[]");
+            List<String> list = GsonUtils.fromJson(listStr, new TypeToken<List<String>>(){}.getType());
+            list.remove(modelId);
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.putString("local_import",GsonUtils.toJson(list));
+            editor.apply();
+            if(downloadInfoMap.containsKey(modelId))
+                downloadInfoMap.remove(modelId);
+            if (!result) {
+                Log.e(TAG, "remove storageFolder" + localModule.getAbsolutePath() + " faield");
+            }
         }
     }
 

@@ -75,6 +75,13 @@ public class ModelListPresenter implements ModelItemListener, DownloadListener {
         requestRepoList(null);
     }
 
+    public void refreshWithCache() {
+        List<HfRepoItem> items = loadFromCache();
+        if (items != null) {
+            onListAvailable(items, null);
+        }
+    }
+
     void load() {
         requestRepoList(null);
     }
@@ -228,6 +235,11 @@ public class ModelListPresenter implements ModelItemListener, DownloadListener {
         } else if (downloadInfo.downlodaState == DownloadInfo.DownloadSate.DOWNLOADING){
             Toast.makeText(this.context, this.context.getResources().getString(R.string.downloading_please_wait), Toast.LENGTH_SHORT).show();
         }
+    }
+
+    @Override
+    public void onItemRemove(HfRepoItem hfRepoItem) {
+        refreshWithCache();
     }
 
     @Override
