@@ -12,7 +12,7 @@ if(MNN_CUDA_PROFILE)
      set(EXTRA_LIBS ${CUDA_INCLUDE_DIRS}/../lib/libnvToolsExt.so)
 endif()
 
-file(GLOB_RECURSE MNN_EXPR_SRCS "${CMAKE_CURRENT_LIST_DIR}/*.*")
+file(GLOB_RECURSE MNN_EXPR_SRCS "Executor.cpp" "${CMAKE_CURRENT_LIST_DIR}/*.*")
 option(MNN_EXPR_SHAPE_EAGER "Force compute Expr's shape directly cost" OFF)
 IF (MNN_EXPR_SHAPE_EAGER)
     add_definitions(-DMNN_EXPR_SHAPE_EAGER)
