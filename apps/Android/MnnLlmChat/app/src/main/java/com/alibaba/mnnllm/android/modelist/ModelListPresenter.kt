@@ -7,25 +7,20 @@ import android.os.Handler
 import android.text.TextUtils
 import android.util.Log
 import android.widget.Toast
-import com.alibaba.mls.api.hf.HfApiClient
-import com.alibaba.mls.api.hf.HfApiClient.RepoSearchCallback
 import com.alibaba.mls.api.ModelItem
 import com.alibaba.mls.api.download.DownloadInfo
 import com.alibaba.mls.api.download.DownloadListener
 import com.alibaba.mls.api.download.ModelDownloadManager
+import com.alibaba.mls.api.hf.HfApiClient
+import com.alibaba.mls.api.hf.HfApiClient.RepoSearchCallback
 import com.alibaba.mnnllm.android.R
 import com.alibaba.mnnllm.android.utils.ModelUtils.processList
+import com.blankj.utilcode.util.GsonUtils
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonSyntaxException
 import com.google.gson.reflect.TypeToken
-import java.io.BufferedReader
-import java.io.File
-import java.io.FileNotFoundException
-import java.io.FileReader
-import java.io.FileWriter
-import java.io.IOException
-import java.io.InputStreamReader
+import java.io.*
 
 class ModelListPresenter(private val context: Context, private val view: ModelListContract.View) :
     ModelItemListener, DownloadListener {
@@ -56,7 +51,12 @@ class ModelListPresenter(private val context: Context, private val view: ModelLi
         }
         requestRepoList(null)
     }
-
+    fun refreshWithCache() {
+        val items: List<ModelItem>? = loadFromCache()
+        if (items != null) {
+            onListAvailable(items, null)
+        }
+    }
     fun load() {
         requestRepoList(null)
     }
@@ -145,6 +145,16 @@ class ModelListPresenter(private val context: Context, private val view: ModelLi
 
     private fun onListAvailable(hfModelItems: List<ModelItem>, onSuccess: Runnable?) {
         val hfRepoItemsProcessed = processList(hfModelItems)
+        val sharedPreferences = context.getSharedPreferences("LOCAL_IMPORT", Context.MODE_PRIVATE)
+        val listStr = sharedPreferences.getString("local_import", "[]")
+        val list = GsonUtils.fromJson<List<String>>(listStr, object : TypeToken<List<String?>?>() {}.type)
+        var tmpList  = ArrayList<ModelItem>()
+        tmpList.addAll(hfModelItems);
+        for (modelId in list) {
+            val itemT = ModelItem()
+            itemT.modelId = modelId
+            tmpList.add(0,itemT);
+        }
         for (item in hfModelItems) {
             modelDownloadManager.getDownloadInfo(item.modelId!!)
         }

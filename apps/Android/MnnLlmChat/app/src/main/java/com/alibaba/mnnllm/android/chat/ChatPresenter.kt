@@ -3,29 +3,23 @@
 
 package com.alibaba.mnnllm.android.chat
 
+import android.content.Context
+import android.content.SharedPreferences
 import android.text.TextUtils
 import android.util.Log
-import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
-import com.alibaba.mnnllm.android.llm.ChatService
-import com.alibaba.mnnllm.android.llm.ChatSession
 import com.alibaba.mnnllm.android.R
 import com.alibaba.mnnllm.android.chat.ChatActivity.Companion.TAG
 import com.alibaba.mnnllm.android.chat.GenerateResultProcessor.R1GenerateResultProcessor
 import com.alibaba.mnnllm.android.chat.model.ChatDataItem
 import com.alibaba.mnnllm.android.chat.model.ChatDataManager
+import com.alibaba.mnnllm.android.llm.ChatService
+import com.alibaba.mnnllm.android.llm.ChatSession
 import com.alibaba.mnnllm.android.llm.GenerateProgressListener
 import com.alibaba.mnnllm.android.utils.FileUtils
 import com.alibaba.mnnllm.android.utils.ModelUtils
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.async
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
-import java.util.Random
+import kotlinx.coroutines.*
+import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 
@@ -64,18 +58,23 @@ class ChatPresenter(
         } else {
             chatDataItemList = null
         }
+
+        val sharedPreferences: SharedPreferences = chatActivity.getSharedPreferences("Prompt", Context.MODE_PRIVATE)
+        val prompt = sharedPreferences.getString("Prompt", "")
         if (ModelUtils.isDiffusionModel(modelName)) {
             val diffusionDir = intent.getStringExtra("diffusionDir")
             chatSession = chatService.createDiffusionSession(
                 modelId, diffusionDir,
-                sessionId, chatDataItemList
+                sessionId, chatDataItemList,
+                prompt
             )
         } else {
             val configFilePath = intent.getStringExtra("configFilePath")
             chatSession = chatService.createLlmSession(
                 modelId, configFilePath,
                 sessionId, chatDataItemList,
-                ModelUtils.isOmni(modelName)
+                ModelUtils.isOmni(modelName),
+                prompt
             )
         }
         sessionId = chatSession.sessionId

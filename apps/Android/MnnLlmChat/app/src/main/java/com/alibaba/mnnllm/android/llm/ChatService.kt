@@ -17,23 +17,43 @@ class ChatService {
         chatDataItemList: List<ChatDataItem>?,
         supportOmni:Boolean
     ): LlmSession {
+        return createLlmSession(modelId,modelDir,sessionIdParam,chatDataItemList,supportOmni,"")
+    }
+    @Synchronized
+    fun createLlmSession(
+        modelId: String?,
+        modelDir: String?,
+        sessionIdParam: String?,
+        chatDataItemList: List<ChatDataItem>?,
+        supportOmni:Boolean,
+        prompt:String?
+    ): LlmSession {
         var sessionId:String = if (TextUtils.isEmpty(sessionIdParam)) {
             System.currentTimeMillis().toString()
         } else {
             sessionIdParam!!
         }
-        val session = LlmSession(modelId!!, sessionId, modelDir!!, chatDataItemList)
+        val session = LlmSession(modelId!!, sessionId, modelDir!!, chatDataItemList,prompt)
         session.supportOmni = supportOmni
         transformerSessionMap[sessionId] = session
         return session
     }
-
     @Synchronized
     fun createDiffusionSession(
         modelId: String?,
         modelDir: String?,
         sessionIdParam: String?,
         chatDataItemList: List<ChatDataItem>?
+    ): ChatSession {
+        return createDiffusionSession(modelId,modelDir,sessionIdParam,chatDataItemList,"");
+    }
+    @Synchronized
+    fun createDiffusionSession(
+        modelId: String?,
+        modelDir: String?,
+        sessionIdParam: String?,
+        chatDataItemList: List<ChatDataItem>?,
+        prompt:String?
     ): ChatSession {
         var sessionId:String = if (TextUtils.isEmpty(sessionIdParam)) {
             System.currentTimeMillis().toString()

@@ -2,16 +2,24 @@
 // Copyright (c) 2024 Alibaba Group Holding Limited All rights reserved.
 package com.alibaba.mnnllm.android.modelist
 
+import android.Manifest
+import android.annotation.SuppressLint
+import android.app.Activity
+import android.content.ContentResolver
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.DocumentsContract
 import android.util.Log
-import android.view.LayoutInflater
-import android.view.Menu
-import android.view.MenuInflater
-import android.view.MenuItem
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.widget.SearchView
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.core.view.MenuHost
 import androidx.core.view.MenuProvider
 import androidx.fragment.app.Fragment
@@ -26,6 +34,10 @@ import com.alibaba.mnnllm.android.utils.CrashUtil
 import com.alibaba.mnnllm.android.utils.PreferenceUtils.isFilterDownloaded
 import com.alibaba.mnnllm.android.utils.PreferenceUtils.setFilterDownloaded
 import com.alibaba.mnnllm.android.utils.RouterUtils.startActivity
+import com.blankj.utilcode.util.EncryptUtils
+import com.blankj.utilcode.util.GsonUtils
+import com.google.gson.reflect.TypeToken
+import java.io.*
 
 class ModelListFragment : Fragment(), ModelListContract.View {
     private lateinit var modelListRecyclerView: RecyclerView
@@ -125,6 +137,33 @@ class ModelListFragment : Fragment(), ModelListContract.View {
                 }
                 true
             }
+            val loadLocalMenu = menu.findItem(R.id.action_loadlocal)
+            loadLocalMenu.setOnMenuItemClickListener { item: MenuItem? ->
+                if (activity != null) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        // Android 11 及以上版本使用 SAF
+                        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
+                        startActivityForResult(intent, 1001)
+                    } else {
+                        // 老版本请求权限
+                        if (ContextCompat.checkSelfPermission(
+                                activity!!,
+                                Manifest.permission.READ_EXTERNAL_STORAGE
+                            )
+                            != PackageManager.PERMISSION_GRANTED
+                        ) {
+                            ActivityCompat.requestPermissions(
+                                activity!!,
+                                arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE),
+                                1001
+                            )
+                        } else {
+//                            copyFolderFromOldSDCard();
+                        }
+                    }
+                }
+                true
+            }
         }
 
         override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
@@ -213,5 +252,142 @@ class ModelListFragment : Fragment(), ModelListContract.View {
 
     override fun runModel(absolutePath: String?, modelId: String?) {
         (activity as MainActivity).runModel(absolutePath, modelId, null)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == 1001 && resultCode == Activity.RESULT_OK) {
+            if (data != null) {
+                val treeUri = data.data
+                if (treeUri != null) {
+
+                    // 持久化访问权限
+                    requireActivity().contentResolver.takePersistableUriPermission(
+                        treeUri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                    )
+                    // 开始复制文件夹
+                    copyFolderFromExternal(treeUri)
+                }
+            }
+        }
+    }
+    private fun copyFolderFromExternal(sourceTreeUri: Uri) {
+        val contentResolver = requireActivity().contentResolver
+
+        val sha256: String = checkFileExistsSha256(contentResolver, sourceTreeUri, "llm.mnn") ?: return
+        val destinationDir = File(requireActivity().getExternalFilesDir(null).toString() + "/" + sha256)
+        if (!destinationDir!!.exists()) {
+            destinationDir!!.mkdirs()
+        } else {
+            Toast.makeText(context, "模型已导入,将进行覆盖!", Toast.LENGTH_SHORT).show()
+        }
+        if (destinationDir != null) {
+            try {
+                copyDirectory(contentResolver, sourceTreeUri, destinationDir)
+
+                val sharedPreferences = requireActivity().getSharedPreferences("LOCAL_IMPORT", Context.MODE_PRIVATE)
+                val listStr = sharedPreferences.getString("local_import", "[]")
+                val list =
+                    GsonUtils.fromJson<MutableList<String>>(listStr, object : TypeToken<List<String?>?>() {}.type)
+                val editor = sharedPreferences.edit()
+                if (!list.contains(sha256)) {
+                    list.add(sha256)
+                }
+                editor.putString("local_import", GsonUtils.toJson(list))
+                editor.apply()
+                Toast.makeText(context, "模型导入完成", Toast.LENGTH_SHORT).show()
+                requireActivity().runOnUiThread { modelListPresenter?.refreshWithCache() }
+            } catch (e: IOException) {
+                destinationDir.delete()
+                e.printStackTrace()
+                Toast.makeText(context, "模型导入失败", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+    private fun checkFileExistsSha256(
+        contentResolver: ContentResolver,
+        sourceUri: Uri,
+        targetFileName: String
+    ): String? {
+        val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(
+            sourceUri,
+            DocumentsContract.getTreeDocumentId(sourceUri)
+        )
+        contentResolver.query(childrenUri, null, null, null, null).use { cursor ->
+            if (cursor != null) {
+                while (cursor.moveToNext()) {
+                    @SuppressLint("Range") val displayName =
+                        cursor.getString(cursor.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME))
+                    @SuppressLint("Range") val documentId =
+                        cursor.getString(cursor.getColumnIndex(DocumentsContract.Document.COLUMN_DOCUMENT_ID))
+                    if (targetFileName == displayName) {
+                        try {
+                            val childUri =
+                                DocumentsContract.buildDocumentUriUsingTree(sourceUri, documentId)
+                            val inputStream = contentResolver.openInputStream(childUri)
+                            val read = ByteArray(1024 * 1024)
+                            if (inputStream != null) {
+                                inputStream.read(read, 0, 1024 * 1024)
+                                return EncryptUtils.encryptSHA256ToString(read)
+                            }
+                        } catch (e: IOException) {
+                            throw RuntimeException(e)
+                        }
+                        return null
+                    }
+                }
+            }
+        }
+        return null
+    }
+
+    @Throws(IOException::class)
+    private fun copyDirectory(contentResolver: ContentResolver, sourceUri: Uri, destinationDir: File) {
+        val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(
+            sourceUri,
+            DocumentsContract.getTreeDocumentId(sourceUri)
+        )
+        contentResolver.query(childrenUri, null, null, null, null).use { cursor ->
+            if (cursor != null) {
+                while (cursor.moveToNext()) {
+                    @SuppressLint("Range") val documentId =
+                        cursor.getString(cursor.getColumnIndex(DocumentsContract.Document.COLUMN_DOCUMENT_ID))
+                    @SuppressLint("Range") val mimeType =
+                        cursor.getString(cursor.getColumnIndex(DocumentsContract.Document.COLUMN_MIME_TYPE))
+                    @SuppressLint("Range") val displayName =
+                        cursor.getString(cursor.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME))
+                    val childUri = DocumentsContract.buildDocumentUriUsingTree(sourceUri, documentId)
+
+                    if (DocumentsContract.Document.MIME_TYPE_DIR == mimeType) {
+                        // 子文件夹
+                        val newDir = File(destinationDir, displayName)
+                        if (!newDir.exists()) {
+                            newDir.mkdirs()
+                        }
+                        copyDirectory(contentResolver, childUri, newDir)
+                    } else {
+                        // 文件
+                        val newFile = File(destinationDir, displayName)
+                        contentResolver.openInputStream(childUri).use { inputStream ->
+                            FileOutputStream(newFile).use { outputStream ->
+                                if (inputStream != null) {
+                                    copyStream(inputStream, outputStream)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Throws(IOException::class)
+    private fun copyStream(input: InputStream, output: OutputStream) {
+        val buffer = ByteArray(4096)
+        var bytesRead: Int
+        while ((input.read(buffer).also { bytesRead = it }) != -1) {
+            output.write(buffer, 0, bytesRead)
+        }
     }
 }

@@ -21,6 +21,7 @@ class LlmSession (
     override var sessionId: String,
     private val configPath: String,
     val savedHistory: List<ChatDataItem>?,
+    var prompt: String?,
 ): ChatSession{
     private var extraAssistantPrompt: String? = null
     override var supportOmni: Boolean = false
@@ -77,7 +78,7 @@ class LlmSession (
         } else {
             "{}"
         },
-        Gson().toJson(configMap)
+        Gson().toJson(configMap), prompt ?: ""
         )
         Log.d(TAG, "MNN_DEBUG load initNative end")
         modelLoading = false
@@ -157,7 +158,8 @@ class LlmSession (
             configPath: String?,
             history: List<String>?,
             mergedConfigStr: String?,
-            configJsonStr: String?
+            configJsonStr: String?,
+            prompt: String?
     ): Long
 
     private external fun submitNative(

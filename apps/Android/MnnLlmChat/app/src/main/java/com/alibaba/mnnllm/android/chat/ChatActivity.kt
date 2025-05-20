@@ -12,7 +12,6 @@ import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.alibaba.mnnllm.android.llm.ChatSession
 import com.alibaba.mnnllm.android.R
 import com.alibaba.mnnllm.android.audio.AudioPlayer
 import com.alibaba.mnnllm.android.benchmark.BenchmarkModule
@@ -22,20 +21,21 @@ import com.alibaba.mnnllm.android.chat.input.ChatInputComponent
 import com.alibaba.mnnllm.android.chat.model.ChatDataItem
 import com.alibaba.mnnllm.android.databinding.ActivityChatBinding
 import com.alibaba.mnnllm.android.llm.AudioDataListener
+import com.alibaba.mnnllm.android.llm.ChatSession
 import com.alibaba.mnnllm.android.llm.LlmSession
 import com.alibaba.mnnllm.android.modelsettings.SettingsBottomSheetFragment
 import com.alibaba.mnnllm.android.utils.AudioPlayService
 import com.alibaba.mnnllm.android.utils.ModelPreferences
 import com.alibaba.mnnllm.android.utils.ModelUtils
 import com.alibaba.mnnllm.android.utils.PreferenceUtils
+import com.alibaba.mnnllm.android.widgets.PopupWindowHelper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import java.util.*
 
 class ChatActivity : AppCompatActivity() {
     var isGenerating: Boolean
@@ -80,7 +80,7 @@ class ChatActivity : AppCompatActivity() {
         chatPresenter = ChatPresenter(this, modelName, modelId!!)
         isDiffusion = ModelUtils.isDiffusionModel(modelName)
         isAudioModel = ModelUtils.isAudioModel(modelName)
-        chatInputModule = ChatInputComponent(this, binding, modelName,)
+        chatInputModule = ChatInputComponent(this, binding, modelName)
         layoutModelLoading = findViewById(R.id.layout_model_loading)
         updateActionBar()
         this.setupSession()
@@ -245,6 +245,13 @@ class ChatActivity : AppCompatActivity() {
                 chatSession.reset()
                 return@start handleSendMessage(createUserMessage(message))
             })
+        } else if (item.itemId == R.id.menu_item_prompt) {
+            PopupWindowHelper().showPromptPopupWindow(
+                this, findViewById<View>(R.id.toolbar), 0, 50,
+                View.OnClickListener { v ->
+                    if (v.id == R.id.chat_prompt_sure) {
+                    }
+                })
         }
         return super.onOptionsItemSelected(item)
     }

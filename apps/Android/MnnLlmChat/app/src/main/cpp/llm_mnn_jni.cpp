@@ -25,6 +25,7 @@
 using MNN::Transformer::Llm;
 using json = nlohmann::json;
 
+
 extern "C" {
 
 JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved) {
@@ -36,13 +37,33 @@ JNIEXPORT void JNI_OnUnload(JavaVM *vm, void *reserved) {
     __android_log_print(ANDROID_LOG_DEBUG, "MNN_DEBUG", "JNI_OnUnload");
 }
 
+//<<<<<<< HEAD
 JNIEXPORT jlong JNICALL Java_com_alibaba_mnnllm_android_llm_LlmSession_initNative(JNIEnv *env,
                                                                                   jobject thiz,
                                                                                   jstring modelDir,
                                                                                   jobject chat_history,
                                                                                   jstring mergeConfigStr,
-                                                                                  jstring configJsonStr) {
+                                                                                  jstring configJsonStr,jstring prompt) {
     const char *model_dir = env->GetStringUTFChars(modelDir, nullptr);
+//=======
+//JNIEXPORT jlong JNICALL Java_com_alibaba_mnnllm_android_ChatSession_initNative(JNIEnv* env,
+//                                                                               jobject thiz,
+//                                                                               jstring modelDir,
+//                                                                               jobject chat_history,
+//                                                                               jstring mergeConfigStr,
+//                                                                               jstring configJsonStr,jstring prompt) {
+//    const char* config_json_cstr = env->GetStringUTFChars(configJsonStr, nullptr);
+//    json configJson = json::parse(config_json_cstr);
+//    bool is_diffusion = configJson["is_diffusion"];
+//    is_r1 = configJson["is_r1"];
+//    std::string diffusion_memory_mode = configJson["diffusion_memory_mode"];
+//    std::string sampler = configJson["sampler"];
+//    s_is_diffusion = is_diffusion;
+//    const char* root_cache_dir = env->GetStringUTFChars(rootCacheDir, nullptr);
+//    const char* model_id = env->GetStringUTFChars(modelId, nullptr);
+//    std::string new_model_id(model_id);
+//    const char* model_dir = env->GetStringUTFChars(modelDir, nullptr);
+//>>>>>>> lian
     auto model_dir_str = std::string(model_dir);
     const char *config_json_cstr = env->GetStringUTFChars(configJsonStr, nullptr);
     const char *merged_config_cstr = env->GetStringUTFChars(mergeConfigStr, nullptr);
@@ -52,8 +73,41 @@ JNIEXPORT jlong JNICALL Java_com_alibaba_mnnllm_android_llm_LlmSession_initNativ
     env->ReleaseStringUTFChars(configJsonStr, config_json_cstr);
     env->ReleaseStringUTFChars(mergeConfigStr, merged_config_cstr);
     MNN_DEBUG("createLLM BeginLoad %s", model_dir);
+//<<<<<<< HEAD
     std::vector<std::string> history;
     history.clear();
+    history.emplace_back("system", env->GetStringUTFChars(prompt, nullptr));
+//=======
+//    if (is_diffusion) {
+//        int diffusion_memory_mode_int = std::stoi(diffusion_memory_mode);
+//        auto diffusion = new DiffusionSession(model_dir, diffusion_memory_mode_int);
+//        return reinterpret_cast<jlong>(diffusion);
+//    }
+//    bool use_mmap = !root_cache_dir_str.empty();
+//    MNN::BackendConfig backendConfig;
+//    auto executor = MNN::Express::Executor::newExecutor(MNN_FORWARD_CPU, backendConfig, 1);
+//    MNN::Express::ExecutorScope s(executor);
+//    auto llm = Llm::createLLM(model_dir_str);
+//    json extra_config;
+//    extra_config["use_mmap"] = use_mmap;
+//    if (use_mmap) {
+//        std::string temp_dir = root_cache_dir_str;
+//        extra_config["tmp_path"] = temp_dir;
+//    }
+//    if (is_r1) {
+//        extra_config["use_template"] = true;
+////        extra_config["use_template"] = false;
+//        extra_config["precision"] = "high";
+//    }
+//    extra_config["sampler_type"] = sampler;
+//    auto extra_config_str = extra_config.dump();
+//    MNN_DEBUG("extra_config: %s", extra_config_str.c_str());
+//    llm->set_config(extra_config_str);
+//    MNN_DEBUG("dumped config: %s", llm->dump_config().c_str());
+//    history.clear();
+//    history.emplace_back("system", env->GetStringUTFChars(prompt, nullptr));
+//    MNN_DEBUG("system promat: %s", env->GetStringUTFChars(prompt, nullptr));
+//>>>>>>> lian
     if (chat_history != nullptr) {
         jclass listClass = env->GetObjectClass(chat_history);
         jmethodID sizeMethod = env->GetMethodID(listClass, "size", "()I");

@@ -58,6 +58,7 @@
     <string name="clear_mmap_cache">清理 mmap 缓存</string>
     <string name="use_mmap">使用 mmap</string>
     <string name="sampler">Sampler</string>
+    <string name="prompt">提示词</string>
     <string name="backend">使用opencl</string>
     <string name="mmap_cacche_cleared">mmap cache 已经清理，需要重新进入聊天</string>
     <string name="mmap_not_used">mmap 没有使用</string>
@@ -71,6 +72,7 @@
     <string name="show_only_downloaded">只显示已下载模型</string>
     <string name="about">关于</string>
     <string name="settings">设置</string>
+    <string name="load_local">加载本地模型</string>
     <string name="current_version">当前版本:%1$s</string>
     <string name="select_download_provider">选择下载提供商</string>
     <string name="settings_complete">强烈建议删除未完成任务重新下载，否则可能有数据不一致问题。</string>

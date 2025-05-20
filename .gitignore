@@ -371,3 +371,5 @@ apps/iOS/MNNLLMChat/MNN.framework
 # datasets
 datasets/*
 !datasets/*.sh
+transformers/llm/export
+apps/Android/MnnLlmChat/app/.cxx

@@ -39,4 +39,9 @@
         android:title="@string/report_crash"
         app:showAsAction="never" />
 
+
+    <item
+            android:id="@+id/action_loadlocal"
+            android:title="@string/load_local"
+            app:showAsAction="never" />
 </menu>
