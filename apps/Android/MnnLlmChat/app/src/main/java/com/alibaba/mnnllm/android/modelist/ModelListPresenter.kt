@@ -144,7 +144,6 @@ class ModelListPresenter(private val context: Context, private val view: ModelLi
 
 
     private fun onListAvailable(hfModelItems: List<ModelItem>, onSuccess: Runnable?) {
-        val hfRepoItemsProcessed = processList(hfModelItems)
         val sharedPreferences = context.getSharedPreferences("LOCAL_IMPORT", Context.MODE_PRIVATE)
         val listStr = sharedPreferences.getString("local_import", "[]")
         val list = GsonUtils.fromJson<List<String>>(listStr, object : TypeToken<List<String?>?>() {}.type)
@@ -155,10 +154,11 @@ class ModelListPresenter(private val context: Context, private val view: ModelLi
             itemT.modelId = modelId
             tmpList.add(0,itemT);
         }
-        for (item in hfModelItems) {
+        val hfRepoItemsProcessed = processList(tmpList)
+        for (item in tmpList) {
             modelDownloadManager.getDownloadInfo(item.modelId!!)
         }
-        modelListAdapter!!.updateItems(hfRepoItemsProcessed, getModelItemState(hfModelItems))
+        modelListAdapter!!.updateItems(hfRepoItemsProcessed, getModelItemState(tmpList))
         onSuccess?.run()
         view.onListAvailable()
     }

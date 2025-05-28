@@ -42,7 +42,7 @@ include_directories("${MNN_SOURCE_ROOT}/transformers/llm/engine/include")
 include_directories("${MNN_SOURCE_ROOT}/tools/audio/include")
 include_directories("${CMAKE_SOURCE_DIR}/third_party")
 # Add library paths
-set(LIB_PATH "${MNN_INSTALL_ROOT}/lib")
+set(LIB_PATH "${MNN_INSTALL_ROOT}")
 
 # Link the shared library
 

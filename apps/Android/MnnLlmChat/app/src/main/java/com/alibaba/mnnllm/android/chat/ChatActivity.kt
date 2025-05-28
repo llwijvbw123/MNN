@@ -197,7 +197,7 @@ class ChatActivity : AppCompatActivity() {
         }
         menu.findItem(R.id.menu_item_model_settings).isVisible = !isDiffusion
         menu.findItem(R.id.menu_item_clear_mmap_cache).isVisible = !isDiffusion
-        menu.findItem(R.id.menu_item_benchmark_test).isVisible = benchmarkModule.enabled
+        menu.findItem(R.id.menu_item_benchmark_test).isVisible = benchmarkModule().enabled
         return true
     }
 
@@ -245,16 +245,11 @@ class ChatActivity : AppCompatActivity() {
                 chatSession.reset()
                 return@start handleSendMessage(createUserMessage(message))
             })
-        } else if (item.itemId == R.id.menu_item_prompt) {
-            PopupWindowHelper().showPromptPopupWindow(
-                this, findViewById<View>(R.id.toolbar), 0, 50,
-                View.OnClickListener { v ->
-                    if (v.id == R.id.chat_prompt_sure) {
-                    }
-                })
         }
         return super.onOptionsItemSelected(item)
     }
+
+    private fun benchmarkModule() = benchmarkModule
 
     private fun createUserMessage(text:String):ChatDataItem {
         val userMessage = ChatDataItem(ChatViewHolders.USER)

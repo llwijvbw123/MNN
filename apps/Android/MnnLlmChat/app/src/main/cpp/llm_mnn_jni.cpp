@@ -76,7 +76,6 @@ JNIEXPORT jlong JNICALL Java_com_alibaba_mnnllm_android_llm_LlmSession_initNativ
 //<<<<<<< HEAD
     std::vector<std::string> history;
     history.clear();
-    history.emplace_back("system", env->GetStringUTFChars(prompt, nullptr));
 //=======
 //    if (is_diffusion) {
 //        int diffusion_memory_mode_int = std::stoi(diffusion_memory_mode);

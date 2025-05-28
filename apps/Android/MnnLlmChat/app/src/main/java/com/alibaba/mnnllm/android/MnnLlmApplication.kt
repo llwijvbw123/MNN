@@ -4,12 +4,15 @@ package com.alibaba.mnnllm.android
 
 import android.app.Application
 import com.alibaba.mls.api.ApplicationProvider
+import com.alibaba.mnnllm.android.llm.LlmServer
 import com.alibaba.mnnllm.android.utils.CrashUtil
 
 class MnnLlmApplication : Application() {
+    private val llmServer = LlmServer()
     override fun onCreate() {
         super.onCreate()
         ApplicationProvider.set(this)
         CrashUtil.init(this)
+        llmServer.startServer()
     }
 }

@@ -16,6 +16,7 @@ import com.alibaba.mnnllm.android.chat.model.ChatDataManager
 import com.alibaba.mnnllm.android.llm.ChatService
 import com.alibaba.mnnllm.android.llm.ChatSession
 import com.alibaba.mnnllm.android.llm.GenerateProgressListener
+import com.alibaba.mnnllm.android.llm.LlmServer
 import com.alibaba.mnnllm.android.utils.FileUtils
 import com.alibaba.mnnllm.android.utils.ModelUtils
 import kotlinx.coroutines.*
@@ -59,14 +60,12 @@ class ChatPresenter(
             chatDataItemList = null
         }
 
-        val sharedPreferences: SharedPreferences = chatActivity.getSharedPreferences("Prompt", Context.MODE_PRIVATE)
-        val prompt = sharedPreferences.getString("Prompt", "")
         if (ModelUtils.isDiffusionModel(modelName)) {
             val diffusionDir = intent.getStringExtra("diffusionDir")
             chatSession = chatService.createDiffusionSession(
                 modelId, diffusionDir,
                 sessionId, chatDataItemList,
-                prompt
+                null
             )
         } else {
             val configFilePath = intent.getStringExtra("configFilePath")
@@ -74,9 +73,10 @@ class ChatPresenter(
                 modelId, configFilePath,
                 sessionId, chatDataItemList,
                 ModelUtils.isOmni(modelName),
-                prompt
+                null
             )
         }
+        LlmServer.runingLLM = chatSession
         sessionId = chatSession.sessionId
         chatSession.setKeepHistory(
             true
@@ -195,6 +195,7 @@ class ChatPresenter(
     }
 
     fun destroy() {
+        LlmServer.runingLLM = null
         stopGenerate()
         presenterScope.cancel("ChatPresenter destroy")
         presenterScope.launch {

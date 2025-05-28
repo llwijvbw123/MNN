@@ -13,7 +13,7 @@ import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.alibaba.mls.api.ApplicationProvider
-
+import com.alibaba.mls.api.download.DownloadFileUtils.deleteDirectoryRecursively
 import com.alibaba.mls.api.download.DownloadPersistentData.getDownloadSizeSaved
 import com.alibaba.mls.api.download.DownloadPersistentData.getDownloadSizeTotal
 import com.alibaba.mls.api.download.DownloadPersistentData.removeProgress
@@ -24,6 +24,9 @@ import com.alibaba.mls.api.download.ml.MLModelDownloader
 import com.alibaba.mls.api.download.ms.MsModelDownloader
 import com.alibaba.mls.api.source.ModelSources
 import com.alibaba.mnnllm.android.utils.FileUtils.clearMmapCache
+import com.blankj.utilcode.util.GsonUtils
+import com.blankj.utilcode.util.PathUtils
+import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
@@ -32,6 +35,7 @@ import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.collections.set
 import kotlin.concurrent.Volatile
+
 
 class ModelDownloadManager private constructor(private val context: Context) {
     private var downloadListener: DownloadListener? = null
@@ -116,7 +120,10 @@ class ModelDownloadManager private constructor(private val context: Context) {
             return MsModelDownloader.getModelPath(
                 MsModelDownloader.getCachePathRoot(cachePath)
                 , modelId)
+        }else if ( File(PathUtils.getExternalAppFilesPath()+"/"+modelId).exists()){
+            return  File(PathUtils.getExternalAppFilesPath()+"/"+modelId);
         }
+
         return null
     }
 
@@ -298,11 +305,31 @@ class ModelDownloadManager private constructor(private val context: Context) {
             removeProgress(ApplicationProvider.get(), modelId)
             clearMmapCache(modelId)
         }
+
+        val localModule = context.getExternalFilesDir(modelId)
+        Log.d(TAG, "removeStorageFolder: " + localModule!!.absolutePath)
+        if (localModule!!.exists()) {
+            val result = deleteDirectoryRecursively(localModule)
+            val sharedPreferences = context.getSharedPreferences("LOCAL_IMPORT", Context.MODE_PRIVATE)
+            val listStr = sharedPreferences.getString("local_import", "[]")
+            val list = GsonUtils.fromJson<MutableList<String>>(listStr, object : TypeToken<List<String?>?>() {}.type)
+            list.remove(modelId)
+            val editor = sharedPreferences.edit()
+            editor.putString("local_import", GsonUtils.toJson(list))
+            editor.apply()
+            if (downloadInfoMap.containsKey(modelId)) downloadInfoMap.remove(modelId)
+            if (!result) {
+                Log.e(TAG, "remove storageFolder" + localModule!!.absolutePath + " faield")
+            }
+        }
+
         if (downloadListener != null) {
             val downloadInfo = getDownloadInfo(modelId)
             downloadInfo.downlodaState = DownloadInfo.DownloadSate.NOT_START
             downloadListener!!.onDownloadFileRemoved(modelId)
         }
+
+
     }
 
     val unfinishedDownloadsSize: Int

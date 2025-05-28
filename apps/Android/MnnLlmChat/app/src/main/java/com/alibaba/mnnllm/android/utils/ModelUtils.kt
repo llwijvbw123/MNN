@@ -123,10 +123,14 @@ object ModelUtils {
         val recommendedItems: MutableList<ModelItem> = ArrayList()
         val chatItems: MutableList<ModelItem> = ArrayList()
         val otherItems: MutableList<ModelItem> = ArrayList()
+        val importItems: MutableList<ModelItem> = ArrayList()
         for (item in hfModelItems) {
             val modelIdLowerCase = item.modelId!!.lowercase(Locale.getDefault())
             if (blackList.contains(item.modelId) || isBlackListPattern(modelIdLowerCase)) {
                 continue
+            }
+            if (item.modelId == item.modelName){
+                importItems.add(item);
             }
             if (isQwen3(modelIdLowerCase) || isOmni(modelIdLowerCase)) {
                 recommendedItems.add(item)
@@ -139,6 +143,7 @@ object ModelUtils {
             }
         }
         val result: MutableList<ModelItem> = mutableListOf()
+        result.addAll(importItems)
         result.addAll(localModelList)
         result.addAll(recommendedItems)
         result.addAll(goodItems)
